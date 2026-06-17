@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: simulation
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tx_analytics
+    username: txpipe
+    password: txpipe
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: simulation-skeleton
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
