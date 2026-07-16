@@ -6,3 +6,15 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      linger-ms: 20
+      batch-size: 65536
+      compression-type: lz4
+      acks: "1"
+      buffer-memory: 67108864
+
+producer:
+  input-file: ../simulation/input/txs-month.json
+  pacing:
+    mean-tx-per-cycle: 2471
+    alpha: 0.02
+    seed: 12345
