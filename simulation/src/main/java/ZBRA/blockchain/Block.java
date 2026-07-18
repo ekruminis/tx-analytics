@@ -119,6 +119,16 @@ public class Block {
         this.pool = s;
     }
 
+    // Hydration setters for the in-memory boot anchor (the "block-before-block-1"
+    // state a mature-chain simulation starts from). Used only at engine init.
+    public void setWeight(double w) {
+        this.weight = w;
+    }
+
+    public void setCurrentHash(String h) {
+        this.currentHash = h;
+    }
+
     public Data getLogs() {
         return logs;
     }

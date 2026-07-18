@@ -10,7 +10,7 @@ import ZBRA.tfm.AbstractTFM;
 import ZBRA.tfm.Burning2ndPrice;
 import ZBRA.tfm.EIP1559;
 import ZBRA.tfm.FirstPrice;
-import ZBRA.tfm.Pool;
+import ZBRA.tfm.ReservePool;
 import ZBRA.tfm.SecondPrice;
 
 public class Main {
@@ -44,7 +44,7 @@ public class Main {
                     case "second_price" -> new SecondPrice();
                     case "burning_second_price" -> new Burning2ndPrice();
                     case "eip1559" -> new EIP1559();
-                    case "pool" -> new Pool();
+                    case "reserve_pool" -> new ReservePool();
                     default -> null;
                 };
 
@@ -72,7 +72,7 @@ public class Main {
                 case "first_price" -> new FirstPrice();
                 case "second_price" -> new SecondPrice();
                 case "eip1559" -> new EIP1559();
-                case "pool" -> new Pool();
+                case "reserve_pool" -> new ReservePool();
                 case "burning_second_price" -> new Burning2ndPrice();
                 default -> null;
             };

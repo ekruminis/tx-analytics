@@ -1,15 +1,15 @@
 package com.ekruminis.txanalytics.producer.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class KafkaTopicConfig {
 
-    // 3 partitions, 1 replicator
     @Bean
-    public NewTopic transactionsRawTopic() {
-        return new NewTopic("transactions.raw", 3, (short) 1);
+    public NewTopic transactionsRawTopic(@Value("${producer.partitions}") int partitions) {
+        return new NewTopic("transactions.raw", partitions, (short) 1);
     }
 }

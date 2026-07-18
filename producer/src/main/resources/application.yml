@@ -11,10 +11,13 @@ spring:
       compression-type: lz4
       acks: "1"
       buffer-memory: 67108864
+      properties:
+        spring.json.add.type.headers: false
 
 producer:
-  input-file: ../simulation/input/txs-month.json
+  input-file: ../simulation/input/txs-week.json
+  seed: 12345
+  partitions: 3
   pacing:
     mean-tx-per-cycle: 2471
     alpha: 0.02
-    seed: 12345

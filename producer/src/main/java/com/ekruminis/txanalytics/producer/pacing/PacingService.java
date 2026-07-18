@@ -17,7 +17,7 @@ public class PacingService {
     public PacingService(
             @Value("${producer.pacing.mean-tx-per-cycle}") double mean,
             @Value("${producer.pacing.alpha}") double alpha,
-            @Value("${producer.pacing.seed}") long seed) {
+            @Value("${producer.seed}") long seed) {
         this.rng = new Well19937c(seed);
 
         double shape = 1.0 / alpha;

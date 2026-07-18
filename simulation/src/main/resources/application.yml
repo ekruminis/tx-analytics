@@ -15,9 +15,39 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: simulation-skeleton
+      group-id: sim-${simulation.tfm}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: ZBRA.kafka.TransactionMessage
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+simulation:
+  seed: 156915
+  num-miners: 10
+  tfm: reserve_pool
+  partitions: 3
+  tfms:
+    first_price:
+      size_limit: "2000000"
+    second_price:
+      size_limit: "2000000"
+    burning_second_price:
+      size_limit: "2000000"
+    eip1559:
+      size_limit: "4000000"
+      target: "2000000"
+      base_fee: "0.0000002333"
+    reserve_pool:
+      size_limit: "4000000"
+      target: "2000000"
+      base_fee: "0.0000002333"
+      reserve_base: "134.38"
+      window: "144"
