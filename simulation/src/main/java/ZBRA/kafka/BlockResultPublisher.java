@@ -3,6 +3,8 @@ package ZBRA.kafka;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import com.ekruminis.txanalytics.wire.BlockResult;
+
 @Component
 public class BlockResultPublisher {
 

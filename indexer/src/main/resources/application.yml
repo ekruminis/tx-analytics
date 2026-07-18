@@ -1,12 +1,17 @@
 spring:
   application:
     name: indexer
+  data:
+    mongodb:
+      uri: mongodb://txpipe:txpipe@localhost:27017/tx_analytics?authSource=admin
+      auto-index-creation: true
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: indexer-skeleton
+      group-id: indexer-block-results
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false

@@ -35,6 +35,7 @@
     </properties>
 
     <modules>
+        <module>common</module>
         <module>producer</module>
         <module>simulation</module>
         <module>indexer</module>

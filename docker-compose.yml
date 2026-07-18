@@ -30,6 +30,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: txpipe
+      MONGO_INITDB_ROOT_PASSWORD: txpipe
+      MONGO_INITDB_DATABASE: tx_analytics
+    volumes:
+      - mongo_data:/data/db
+
 volumes:
   kafka_data:
   postgres_data:
+  mongo_data:
