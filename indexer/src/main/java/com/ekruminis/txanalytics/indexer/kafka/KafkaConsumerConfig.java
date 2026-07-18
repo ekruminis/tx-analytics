@@ -41,6 +41,28 @@ public class KafkaConsumerConfig {
         return factory;
     }
 
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, BlockResult> esBlockResultListenerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrap,
+            @Value("${indexer.elastic.group-id}") String groupId,
+            @Value("${spring.kafka.consumer.auto-offset-reset}") String autoOffsetReset) {
+        return typedFactory(bootstrap, groupId, autoOffsetReset, BlockResult.class);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, TxResult> esTxResultListenerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrap,
+            @Value("${indexer.elastic.group-id}") String groupId,
+            @Value("${spring.kafka.consumer.auto-offset-reset}") String autoOffsetReset) {
+        ConcurrentKafkaListenerContainerFactory<String, TxResult> factory =
+                typedFactory(bootstrap, groupId, autoOffsetReset, TxResult.class);
+        factory.setBatchListener(true);
+        factory.setConcurrency(12);
+        factory.getContainerProperties().getKafkaConsumerProperties()
+                .put("max.poll.records", "5000");
+        return factory;
+    }
+
     private static <T> ConcurrentKafkaListenerContainerFactory<String, T> typedFactory(
             String bootstrap, String groupId, String autoOffsetReset, Class<T> valueType) {
         Map<String, Object> props = new HashMap<>();
