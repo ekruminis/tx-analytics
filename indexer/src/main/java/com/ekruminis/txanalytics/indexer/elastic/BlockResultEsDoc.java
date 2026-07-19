@@ -72,13 +72,13 @@ public class BlockResultEsDoc {
     protected BlockResultEsDoc() {
     }
 
-    public static BlockResultEsDoc from(BlockResult r, Instant timestamp) {
+    public static BlockResultEsDoc from(BlockResult r) {
         BlockResultEsDoc d = new BlockResultEsDoc();
         d.id = r.runId() + ":" + r.height();
         d.runId = r.runId();
         d.tfm = r.tfm();
         d.height = r.height();
-        d.timestamp = timestamp;
+        d.timestamp = Instant.ofEpochMilli(r.timestamp());
         d.winnerMinerId = r.winnerMinerId();
         d.payout = r.payout();
         d.size = r.size();

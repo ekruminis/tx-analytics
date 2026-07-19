@@ -4,24 +4,16 @@ import org.apache.commons.math3.distribution.GammaDistribution;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well19937c;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
-// stateful Gamma-Poisson (Negative Binomial) batch-size sampler
-@Component
 public class PacingService {
 
     private final RandomGenerator rng;
     private final GammaDistribution gamma;
 
-    public PacingService(
-            @Value("${producer.pacing.mean-tx-per-cycle}") double mean,
-            @Value("${producer.pacing.alpha}") double alpha,
-            @Value("${producer.seed}") long seed) {
+    public PacingService(double meanTxPerCycle, double alpha, long seed) {
         this.rng = new Well19937c(seed);
-
         double shape = 1.0 / alpha;
-        double scale = mean * alpha;
+        double scale = meanTxPerCycle * alpha;
         this.gamma = new GammaDistribution(rng, shape, scale);
     }
 
@@ -34,4 +26,3 @@ public class PacingService {
         return poisson.sample();
     }
 }
-

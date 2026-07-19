@@ -48,13 +48,13 @@ public class TxResultEsDoc {
     protected TxResultEsDoc() {
     }
 
-    public static TxResultEsDoc from(TxResult r, Instant timestamp) {
+    public static TxResultEsDoc from(TxResult r) {
         TxResultEsDoc d = new TxResultEsDoc();
         d.id = r.runId() + ":" + r.txHash() + ":" + r.height();
         d.runId = r.runId();
         d.tfm = r.tfm();
         d.height = r.height();
-        d.timestamp = timestamp;
+        d.timestamp = Instant.ofEpochMilli(r.timestamp());
         d.size = r.size();
         d.offeredFee = r.offeredFee();
         d.paidFee = r.paidFee();

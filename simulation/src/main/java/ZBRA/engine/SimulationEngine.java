@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HexFormat;
@@ -14,7 +15,6 @@ import java.util.Random;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well19937c;
-import org.springframework.stereotype.Component;
 
 import com.ekruminis.txanalytics.wire.BlockResult;
 import com.ekruminis.txanalytics.wire.TxResult;
@@ -40,7 +40,6 @@ import ZBRA.tfm.FirstPrice;
 import ZBRA.tfm.ReservePool;
 import ZBRA.tfm.SecondPrice;
 
-@Component
 public class SimulationEngine {
 
     private final SimulationRun.RunProperties props;
@@ -50,6 +49,8 @@ public class SimulationEngine {
     private final MinerRepository minerRepo;
     private final BlockResultPublisher blockResultPublisher;
     private final TxResultPublisher txResultPublisher;
+    private final Instant blockTimeGenesis;
+    private final long blockTimeIntervalSeconds;
 
     private AbstractTFM tfm;
     private Experiment experiment;
@@ -70,7 +71,9 @@ public class SimulationEngine {
                             BlockRepository blockRepo,
                             MinerRepository minerRepo,
                             BlockResultPublisher blockResultPublisher,
-                            TxResultPublisher txResultPublisher) {
+                            TxResultPublisher txResultPublisher,
+                            Instant blockTimeGenesis,
+                            long blockTimeIntervalSeconds) {
         this.props = props;
         this.experimentRepo = experimentRepo;
         this.runRepo = runRepo;
@@ -78,6 +81,8 @@ public class SimulationEngine {
         this.minerRepo = minerRepo;
         this.blockResultPublisher = blockResultPublisher;
         this.txResultPublisher = txResultPublisher;
+        this.blockTimeGenesis = blockTimeGenesis;
+        this.blockTimeIntervalSeconds = blockTimeIntervalSeconds;
     }
 
     public void mineCycle(String datasetHash, long cycle, List<Transaction> newTxs) {
@@ -92,6 +97,7 @@ public class SimulationEngine {
         Data results = tfm.fetchValidTX(mempool, sizeLimit, blockchain, winner, target);
 
         int height = previous.getIndex() + 1;
+        long timestamp = blockTimeGenesis.plusSeconds(height * blockTimeIntervalSeconds).toEpochMilli();
         byte[] merkleRoot = merkleRoot(results.getConfirmed());
         String merkleRootHex = HexFormat.of().formatHex(merkleRoot);
 
@@ -103,8 +109,8 @@ public class SimulationEngine {
         if (!blockRepo.existsByRunIdAndHeight(run.getId(), height)) {
             blockRepo.save(new BlockEntity(run, block, merkleRootHex));
             blockResultPublisher.publish(
-                    buildBlockResult(height, winner, results, merkleRootHex));
-            txResultPublisher.publish(buildTxResults(height, results));
+                    buildBlockResult(height, timestamp, winner, results, merkleRootHex));
+            txResultPublisher.publish(buildTxResults(height, timestamp, results));
         }
 
         blockchain.add(block);
@@ -118,7 +124,7 @@ public class SimulationEngine {
                 tfmSpecificLog(results));
     }
 
-    private List<TxResult> buildTxResults(int height, Data results) {
+    private List<TxResult> buildTxResults(int height, long timestamp, Data results) {
         String runId = run.getId().toString();
         String tfm = props.tfm();
         List<TxResult> out = new ArrayList<>(results.getConfirmed().size()
@@ -126,32 +132,32 @@ public class SimulationEngine {
         switch (tfm) {
             case "first_price", "reserve_pool" -> {
                 for (Transaction tx : results.getConfirmed()) {
-                    out.add(new TxResult(runId, tfm, height, tx.getHash(), tx.getSize(),
+                    out.add(new TxResult(runId, tfm, height, timestamp, tx.getHash(), tx.getSize(),
                             tx.getTotalFee(), tx.getTotalFee(), true, null));
                 }
             }
             case "second_price" -> {
                 double eff = results.getBaseFee();
                 for (Transaction tx : results.getConfirmed()) {
-                    out.add(new TxResult(runId, tfm, height, tx.getHash(), tx.getSize(),
+                    out.add(new TxResult(runId, tfm, height, timestamp, tx.getHash(), tx.getSize(),
                             tx.getTotalFee(), eff * tx.getWeight(), true, null));
                 }
             }
             case "eip1559" -> {
                 double baseFee = results.getBaseFee();
                 for (Transaction tx : results.getConfirmed()) {
-                    out.add(new TxResult(runId, tfm, height, tx.getHash(), tx.getSize(),
+                    out.add(new TxResult(runId, tfm, height, timestamp, tx.getHash(), tx.getSize(),
                             tx.getTotalFee(), tx.getTotalFee(), true, baseFee * tx.getWeight()));
                 }
             }
             case "burning_second_price" -> {
                 double eff = results.getBaseFee();
                 for (Transaction tx : results.getConfirmed()) {
-                    out.add(new TxResult(runId, tfm, height, tx.getHash(), tx.getSize(),
+                    out.add(new TxResult(runId, tfm, height, timestamp, tx.getHash(), tx.getSize(),
                             tx.getTotalFee(), eff * tx.getWeight(), true, null));
                 }
                 for (Transaction tx : results.getUnconfirmed()) {
-                    out.add(new TxResult(runId, tfm, height, tx.getHash(), tx.getSize(),
+                    out.add(new TxResult(runId, tfm, height, timestamp, tx.getHash(), tx.getSize(),
                             tx.getTotalFee(), 0.0, false, null));
                 }
             }
@@ -160,7 +166,7 @@ public class SimulationEngine {
         return out;
     }
 
-    private BlockResult buildBlockResult(int height, Miner winner, Data results, String merkleRootHex) {
+    private BlockResult buildBlockResult(int height, long timestamp, Miner winner, Data results, String merkleRootHex) {
         String runId = run.getId().toString();
         String tfm = props.tfm();
         int winnerId = winner.getID();
@@ -172,27 +178,27 @@ public class SimulationEngine {
                 .mapToDouble(Transaction::getTotalFee).sum();
         return switch (tfm) {
             case "first_price" -> new BlockResult(
-                    runId, tfm, height, winnerId, payout, size, txCount, mempoolSize,
+                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     null, null, null, null, null, null, null);
             case "second_price" -> new BlockResult(
-                    runId, tfm, height, winnerId, payout, size, txCount, mempoolSize,
+                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), null, null, null, null, null, null);
             case "eip1559" -> new BlockResult(
-                    runId, tfm, height, winnerId, payout, size, txCount, mempoolSize,
+                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), results.getBurned().doubleValue(), null, null,
                     null, null, null);
             case "reserve_pool" -> new BlockResult(
-                    runId, tfm, height, winnerId, payout, size, txCount, mempoolSize,
+                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), null, results.getPool().doubleValue(), null,
                     results.getPoolEffect() != null ? results.getPoolEffect().doubleValue() : 0.0,
                     results.isTakeFromPublic(),
                     null);
             case "burning_second_price" -> new BlockResult(
-                    runId, tfm, height, winnerId, payout, size, txCount, mempoolSize,
+                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), results.getBurned().doubleValue(), null,
                     results.getUnconfirmed().size(),

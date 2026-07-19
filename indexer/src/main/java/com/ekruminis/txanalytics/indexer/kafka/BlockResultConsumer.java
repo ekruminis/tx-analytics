@@ -11,13 +11,16 @@ import com.ekruminis.txanalytics.wire.BlockResult;
 public class BlockResultConsumer {
 
     private final BlockResultRepository repository;
+    private final CacheInvalidationPublisher invalidation;
 
-    public BlockResultConsumer(BlockResultRepository repository) {
+    public BlockResultConsumer(BlockResultRepository repository, CacheInvalidationPublisher invalidation) {
         this.repository = repository;
+        this.invalidation = invalidation;
     }
 
     @KafkaListener(topics = "blocks.results", containerFactory = "blockResultListenerFactory")
     public void onBlockResult(BlockResult result) {
         repository.save(BlockResultDoc.from(result));
+        invalidation.announce(result.runId());
     }
 }

@@ -6,24 +6,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import ZBRA.blockchain.Transaction;
 
-@Component
 public class CycleAssembler {
 
-    private final SimulationEngine engine;
+    private final List<SimulationEngine> engines;
     private final int expectedPartitions;
+
     private final Map<Long, List<Transaction>> reorderBuffer = new HashMap<>();
     private final Map<Integer, Long> partitionHeads = new HashMap<>();
     private long nextCycle = -1;
     private String datasetHash;
 
-    public CycleAssembler(SimulationEngine engine,
-                          @Value("${simulation.partitions}") int expectedPartitions) {
-        this.engine = engine;
+    public CycleAssembler(List<SimulationEngine> engines, int expectedPartitions) {
+        this.engines = engines;
         this.expectedPartitions = expectedPartitions;
     }
 
@@ -63,7 +59,10 @@ public class CycleAssembler {
 
         while (nextCycle < limit) {
             List<Transaction> txs = reorderBuffer.remove(nextCycle);
-            engine.mineCycle(datasetHash, nextCycle, txs == null ? List.of() : txs);
+            List<Transaction> cycleTxs = txs == null ? List.of() : txs;
+            for (SimulationEngine engine : engines) {
+                engine.mineCycle(datasetHash, nextCycle, cycleTxs);
+            }
             nextCycle++;
         }
     }

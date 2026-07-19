@@ -7,6 +7,7 @@ public record TxResult(
         String runId,
         String tfm,
         int height,
+        long timestamp,
         String txHash,
         double size,
         double offeredFee,

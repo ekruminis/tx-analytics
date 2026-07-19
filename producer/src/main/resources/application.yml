@@ -3,21 +3,29 @@ spring:
     name: producer
   kafka:
     bootstrap-servers: localhost:9092
+    consumer:
+      group-id: producer-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.ekruminis.txanalytics.wire.RunCommand
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       linger-ms: 20
       batch-size: 65536
       compression-type: lz4
-      acks: "1"
+      acks: all
       buffer-memory: 67108864
       properties:
         spring.json.add.type.headers: false
+        enable.idempotence: true
+        max.block.ms: 300000
+        delivery.timeout.ms: 300000
+        request.timeout.ms: 60000
 
 producer:
-  input-file: ../simulation/input/txs-week.json
-  seed: 12345
-  partitions: 3
-  pacing:
-    mean-tx-per-cycle: 2471
-    alpha: 0.02
+  input-dir: ../simulation/input

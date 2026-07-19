@@ -7,6 +7,7 @@ public record BlockResult(
         String runId,
         String tfm,
         int height,
+        long timestamp,
         int winnerMinerId,
         double payout,
         double size,

@@ -17,10 +17,10 @@ spring:
       properties:
         spring.json.trusted.packages: "*"
         spring.json.use.type.headers: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 indexer:
   elastic:
     group-id: indexer-elastic
-  block-time:
-    genesis: "2023-06-01T00:00:00Z"
-    interval-seconds: 600
