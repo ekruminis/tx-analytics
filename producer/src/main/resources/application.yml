@@ -29,3 +29,22 @@ spring:
 
 producer:
   input-dir: ../simulation/input
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      service: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true

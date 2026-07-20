@@ -22,6 +22,12 @@ public class BlockResultEsDoc {
     private String runId;
 
     @Field(type = FieldType.Keyword)
+    private String experimentId;
+
+    @Field(type = FieldType.Keyword)
+    private String experimentLabel;
+
+    @Field(type = FieldType.Keyword)
     private String tfm;
 
     @Field(type = FieldType.Integer)
@@ -76,6 +82,8 @@ public class BlockResultEsDoc {
         BlockResultEsDoc d = new BlockResultEsDoc();
         d.id = r.runId() + ":" + r.height();
         d.runId = r.runId();
+        d.experimentId = r.experimentId();
+        d.experimentLabel = r.experimentLabel();
         d.tfm = r.tfm();
         d.height = r.height();
         d.timestamp = Instant.ofEpochMilli(r.timestamp());

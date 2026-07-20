@@ -17,6 +17,7 @@ import org.apache.commons.math3.random.RandomGenerator;
 import org.apache.commons.math3.random.Well19937c;
 
 import com.ekruminis.txanalytics.wire.BlockResult;
+import com.ekruminis.txanalytics.wire.MinerRoster;
 import com.ekruminis.txanalytics.wire.TxResult;
 
 import ZBRA.blockchain.Block;
@@ -24,6 +25,7 @@ import ZBRA.blockchain.Data;
 import ZBRA.blockchain.Miner;
 import ZBRA.blockchain.Transaction;
 import ZBRA.kafka.BlockResultPublisher;
+import ZBRA.kafka.MinerRosterPublisher;
 import ZBRA.kafka.TxResultPublisher;
 import ZBRA.persistence.BlockEntity;
 import ZBRA.persistence.BlockRepository;
@@ -39,6 +41,8 @@ import ZBRA.tfm.EIP1559;
 import ZBRA.tfm.FirstPrice;
 import ZBRA.tfm.ReservePool;
 import ZBRA.tfm.SecondPrice;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 public class SimulationEngine {
 
@@ -49,8 +53,10 @@ public class SimulationEngine {
     private final MinerRepository minerRepo;
     private final BlockResultPublisher blockResultPublisher;
     private final TxResultPublisher txResultPublisher;
+    private final MinerRosterPublisher minerRosterPublisher;
     private final Instant blockTimeGenesis;
     private final long blockTimeIntervalSeconds;
+    private final Timer mineTimer;
 
     private AbstractTFM tfm;
     private Experiment experiment;
@@ -72,8 +78,10 @@ public class SimulationEngine {
                             MinerRepository minerRepo,
                             BlockResultPublisher blockResultPublisher,
                             TxResultPublisher txResultPublisher,
+                            MinerRosterPublisher minerRosterPublisher,
                             Instant blockTimeGenesis,
-                            long blockTimeIntervalSeconds) {
+                            long blockTimeIntervalSeconds,
+                            MeterRegistry meterRegistry) {
         this.props = props;
         this.experimentRepo = experimentRepo;
         this.runRepo = runRepo;
@@ -81,11 +89,21 @@ public class SimulationEngine {
         this.minerRepo = minerRepo;
         this.blockResultPublisher = blockResultPublisher;
         this.txResultPublisher = txResultPublisher;
+        this.minerRosterPublisher = minerRosterPublisher;
         this.blockTimeGenesis = blockTimeGenesis;
         this.blockTimeIntervalSeconds = blockTimeIntervalSeconds;
+        this.mineTimer = Timer.builder("simulation.block.mine")
+                .description("wall time to select, hash, persist and publish one block")
+                .tag("tfm", props.tfm())
+                .publishPercentileHistogram()
+                .register(meterRegistry);
     }
 
     public void mineCycle(String datasetHash, long cycle, List<Transaction> newTxs) {
+        mineTimer.record(() -> doMineCycle(datasetHash, cycle, newTxs));
+    }
+
+    private void doMineCycle(String datasetHash, long cycle, List<Transaction> newTxs) {
         if (!initialised) {
             initialise(datasetHash);
         }
@@ -168,6 +186,8 @@ public class SimulationEngine {
 
     private BlockResult buildBlockResult(int height, long timestamp, Miner winner, Data results, String merkleRootHex) {
         String runId = run.getId().toString();
+        String experimentId = experiment.getId().toString();
+        String experimentLabel = experimentLabel();
         String tfm = props.tfm();
         int winnerId = winner.getID();
         double payout = results.getRewards().doubleValue();
@@ -178,27 +198,27 @@ public class SimulationEngine {
                 .mapToDouble(Transaction::getTotalFee).sum();
         return switch (tfm) {
             case "first_price" -> new BlockResult(
-                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
+                    runId, experimentId, experimentLabel, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     null, null, null, null, null, null, null);
             case "second_price" -> new BlockResult(
-                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
+                    runId, experimentId, experimentLabel, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), null, null, null, null, null, null);
             case "eip1559" -> new BlockResult(
-                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
+                    runId, experimentId, experimentLabel, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), results.getBurned().doubleValue(), null, null,
                     null, null, null);
             case "reserve_pool" -> new BlockResult(
-                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
+                    runId, experimentId, experimentLabel, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), null, results.getPool().doubleValue(), null,
                     results.getPoolEffect() != null ? results.getPoolEffect().doubleValue() : 0.0,
                     results.isTakeFromPublic(),
                     null);
             case "burning_second_price" -> new BlockResult(
-                    runId, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
+                    runId, experimentId, experimentLabel, tfm, height, timestamp, winnerId, payout, size, txCount, mempoolSize,
                     totalOfferedFee, merkleRootHex,
                     results.getBaseFee(), results.getBurned().doubleValue(), null,
                     results.getUnconfirmed().size(),
@@ -206,6 +226,18 @@ public class SimulationEngine {
                     results.getRewards().doubleValue() + results.getBurned().doubleValue());
             default -> throw new IllegalStateException("no BlockResult mapping for tfm: " + tfm);
         };
+    }
+
+    private String experimentLabel() {
+        String dataset = experiment.getDatasetHash();
+        if (dataset != null && dataset.length() > 8) {
+            dataset = dataset.substring(0, 8);
+        }
+        return String.format("seed=%d miners=%d ds=%s %s",
+                experiment.getSeed(),
+                experiment.getNumMiners(),
+                dataset,
+                experiment.getStartedAt().toString().substring(0, 10));
     }
 
     private String tfmSpecificLog(Data results) {
@@ -303,6 +335,16 @@ public class SimulationEngine {
                 minerRepo.save(new MinerEntity(experiment, miner, totalStake));
             }
         }
+
+        List<MinerRoster.Entry> rosterEntries = new ArrayList<>(miners.size());
+        for (Miner miner : miners) {
+            rosterEntries.add(new MinerRoster.Entry(
+                    miner.getID(),
+                    miner.getStake(),
+                    totalStake == 0 ? 0.0 : (miner.getStake() * 100.0) / totalStake));
+        }
+        minerRosterPublisher.publish(new MinerRoster(
+                experiment.getId().toString(), miners.size(), totalStake, rosterEntries));
 
         this.run = SimulationRun.fromProperties(props, experiment);
         boolean runNew = !runRepo.existsById(run.getId());

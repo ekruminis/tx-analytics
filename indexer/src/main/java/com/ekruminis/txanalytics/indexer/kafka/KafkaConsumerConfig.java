@@ -14,6 +14,7 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 import com.ekruminis.txanalytics.wire.BlockResult;
+import com.ekruminis.txanalytics.wire.MinerRoster;
 import com.ekruminis.txanalytics.wire.TxResult;
 
 @Configuration
@@ -61,6 +62,14 @@ public class KafkaConsumerConfig {
         factory.getContainerProperties().getKafkaConsumerProperties()
                 .put("max.poll.records", "5000");
         return factory;
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, MinerRoster> esMinerRosterListenerFactory(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrap,
+            @Value("${indexer.elastic.group-id}") String groupId,
+            @Value("${spring.kafka.consumer.auto-offset-reset}") String autoOffsetReset) {
+        return typedFactory(bootstrap, groupId, autoOffsetReset, MinerRoster.class);
     }
 
     private static <T> ConcurrentKafkaListenerContainerFactory<String, T> typedFactory(

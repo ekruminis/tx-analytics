@@ -94,11 +94,32 @@ public class Burning2ndPrice extends AbstractTFM {
             weightUsedUp += txWeight;
         }
 
-        int split = txList.size() / 2;
-        confirmedTxList = new ArrayList<>(txList.subList(0, split));
-        unconfirmedTxList = new ArrayList<>(txList.subList(split, txList.size()));
+        double totalWeight = 0;
+        for (Transaction t : txList) {
+            totalWeight += t.getWeight();
+        }
 
-        if (!unconfirmedTxList.isEmpty()) {
+        int split = 0;
+        double confirmedWeight = 0;
+        for (int i = 0; i < txList.size() - 1; i++) {
+            confirmedWeight += txList.get(i).getWeight();
+            split = i + 1;
+            if (confirmedWeight * 2 >= totalWeight) {
+                break;
+            }
+        }
+
+        boolean validSplit = split > 0 && confirmedWeight * 2 >= totalWeight;
+
+        if (validSplit) {
+            confirmedTxList = new ArrayList<>(txList.subList(0, split));
+            unconfirmedTxList = new ArrayList<>(txList.subList(split, txList.size()));
+        } else {
+            confirmedTxList = new ArrayList<>();
+            unconfirmedTxList = new ArrayList<>(txList);
+        }
+
+        if (validSplit && !unconfirmedTxList.isEmpty()) {
             effectiveFee = unconfirmedTxList.get(0).getWeightFee();
         }
 
@@ -110,7 +131,9 @@ public class Burning2ndPrice extends AbstractTFM {
         }
 
         for (Transaction t : unconfirmedTxList) {
-            minerRewards = minerRewards.add(new BigDecimal(t.getTotalFee()));
+            if (validSplit) {
+                minerRewards = minerRewards.add(BigDecimal.valueOf(t.getTotalFee()));
+            }
             logs.add(logStart(index, "no", t.getHash(), t.getTotalFee(), 0, t.getWeight(), t.getSize()));
             index++;
         }

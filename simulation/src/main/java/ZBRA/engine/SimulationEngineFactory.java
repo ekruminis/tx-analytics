@@ -5,7 +5,10 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 import ZBRA.kafka.BlockResultPublisher;
+import ZBRA.kafka.MinerRosterPublisher;
 import ZBRA.kafka.TxResultPublisher;
 import ZBRA.persistence.BlockRepository;
 import ZBRA.persistence.ExperimentRepository;
@@ -22,19 +25,25 @@ public class SimulationEngineFactory {
     private final MinerRepository minerRepo;
     private final BlockResultPublisher blockResultPublisher;
     private final TxResultPublisher txResultPublisher;
+    private final MinerRosterPublisher minerRosterPublisher;
+    private final MeterRegistry meterRegistry;
 
     public SimulationEngineFactory(ExperimentRepository experimentRepo,
                                    SimulationRunRepository runRepo,
                                    BlockRepository blockRepo,
                                    MinerRepository minerRepo,
                                    BlockResultPublisher blockResultPublisher,
-                                   TxResultPublisher txResultPublisher) {
+                                   TxResultPublisher txResultPublisher,
+                                   MinerRosterPublisher minerRosterPublisher,
+                                   MeterRegistry meterRegistry) {
         this.experimentRepo = experimentRepo;
         this.runRepo = runRepo;
         this.blockRepo = blockRepo;
         this.minerRepo = minerRepo;
         this.blockResultPublisher = blockResultPublisher;
         this.txResultPublisher = txResultPublisher;
+        this.minerRosterPublisher = minerRosterPublisher;
+        this.meterRegistry = meterRegistry;
     }
 
     public SimulationEngine create(String tfm, long seed, int numMiners, Map<String, String> params,
@@ -43,7 +52,8 @@ public class SimulationEngineFactory {
         SimulationRun.RunProperties props =
                 new SimulationRun.RunProperties(tfm, seed, numMiners, Map.of(tfm, effectiveParams));
         return new SimulationEngine(props, experimentRepo, runRepo, blockRepo, minerRepo,
-                blockResultPublisher, txResultPublisher, blockTimeGenesis, blockTimeIntervalSeconds);
+                blockResultPublisher, txResultPublisher, minerRosterPublisher,
+                blockTimeGenesis, blockTimeIntervalSeconds, meterRegistry);
     }
 
     private static Map<String, String> applyDefaults(String tfm, Map<String, String> params) {

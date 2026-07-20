@@ -18,7 +18,7 @@ public class IngestCommandConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(IngestCommandConsumer.class);
 
-    private static final String DEFAULT_DATASET = "txs-week.json";
+    private static final String DEFAULT_DATASET = "txs-test.json";
     private static final int DEFAULT_PARTITIONS = 3;
     private static final long DEFAULT_SIM_SEED = 7653L;
     private static final int DEFAULT_NUM_MINERS = 10;

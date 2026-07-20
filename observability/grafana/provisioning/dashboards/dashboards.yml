@@ -1,0 +1,13 @@
+apiVersion: 1
+
+providers:
+  - name: tx-analytics
+    orgId: 1
+    folder: tx-analytics
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

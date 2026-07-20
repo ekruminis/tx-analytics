@@ -34,7 +34,7 @@ public class SimulationController {
         Map<String, Object> body = new HashMap<>();
         body.put("status", "accepted");
         body.put("message", "simulation launched; poll /experiments and /runs for results");
-        body.put("dataset", command.dataset() != null ? command.dataset() : "txs-week.json (default)");
+        body.put("dataset", command.dataset() != null ? command.dataset() : "txs-test.json (default)");
         body.put("tfms", command.tfms().keySet());
         return ResponseEntity.accepted().body(body);
     }

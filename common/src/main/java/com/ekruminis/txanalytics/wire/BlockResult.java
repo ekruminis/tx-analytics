@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BlockResult(
         String runId,
+        String experimentId,
+        String experimentLabel,
         String tfm,
         int height,
         long timestamp,
