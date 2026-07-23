@@ -106,6 +106,87 @@ services:
     depends_on:
       - prometheus
 
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: producer
+    image: tx-analytics/producer:dev
+    profiles: ["apps"]
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      PRODUCER_INPUT_DIR: /input
+    volumes:
+      - ./simulation/input:/input:ro
+    depends_on:
+      - kafka
+    restart: unless-stopped
+
+  simulation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: simulation
+    image: tx-analytics/simulation:dev
+    profiles: ["apps"]
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tx_analytics
+    depends_on:
+      - kafka
+      - postgres
+    restart: unless-stopped
+
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: indexer
+    image: tx-analytics/indexer:dev
+    profiles: ["apps"]
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATA_MONGODB_URI: mongodb://txpipe:txpipe@mongo:27017/tx_analytics?authSource=admin
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+    depends_on:
+      - kafka
+      - mongo
+      - elasticsearch
+    restart: unless-stopped
+
+  query-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: query-api
+    image: tx-analytics/query-api:dev
+    profiles: ["apps"]
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tx_analytics
+      SPRING_DATA_MONGODB_URI: mongodb://txpipe:txpipe@mongo:27017/tx_analytics?authSource=admin
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+    depends_on:
+      - kafka
+      - postgres
+      - mongo
+      - redis
+      - elasticsearch
+    restart: unless-stopped
+
 volumes:
   kafka_data:
   postgres_data:

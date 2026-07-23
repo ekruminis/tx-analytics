@@ -1,0 +1,24 @@
+services:
+  kibana:
+    profiles: ["disabled"]
+
+  elasticsearch:
+    environment:
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+
+  kafka:
+    environment:
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx768m"
+
+  producer:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
+  simulation:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
+  indexer:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
+  query-api:
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx384m"

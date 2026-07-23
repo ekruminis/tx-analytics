@@ -19,15 +19,15 @@ scrape_configs:
   - job_name: tx-analytics
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["host.docker.internal:8080"]
+      - targets: ["query-api:8080"]
         labels:
           service: query-api
-      - targets: ["host.docker.internal:8081"]
+      - targets: ["producer:8081"]
         labels:
           service: producer
-      - targets: ["host.docker.internal:8082"]
+      - targets: ["simulation:8082"]
         labels:
           service: simulation
-      - targets: ["host.docker.internal:8083"]
+      - targets: ["indexer:8083"]
         labels:
           service: indexer

@@ -1,11 +1,9 @@
 package com.ekruminis.txanalytics.producer.ingest;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -31,16 +29,16 @@ public class IngestCommandConsumer {
     private final DatasetIngestor ingestor;
     private final TopicOps topicOps;
     private final KafkaTemplate<String, Object> kafka;
-    private final String inputDir;
+    private final DatasetResolver datasetResolver;
 
     public IngestCommandConsumer(DatasetIngestor ingestor,
                                  TopicOps topicOps,
                                  KafkaTemplate<String, Object> kafka,
-                                 @Value("${producer.input-dir}") String inputDir) {
+                                 DatasetResolver datasetResolver) {
         this.ingestor = ingestor;
         this.topicOps = topicOps;
         this.kafka = kafka;
-        this.inputDir = inputDir;
+        this.datasetResolver = datasetResolver;
     }
 
     @KafkaListener(topics = "ingest.commands")
@@ -59,7 +57,7 @@ public class IngestCommandConsumer {
         String genesis = blockTime(cmd, RunCommand.BlockTimeConfig::genesis, DEFAULT_GENESIS);
         long interval = blockTimeInterval(cmd);
 
-        Path file = Paths.get(inputDir, dataset);
+        Path file = datasetResolver.resolve(dataset);
         String hash = DatasetIngestor.hashFile(file);
         String topic = "transactions." + hash;
 

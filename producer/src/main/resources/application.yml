@@ -29,6 +29,9 @@ spring:
 
 producer:
   input-dir: ../simulation/input
+  s3:
+    region: eu-west-2
+    endpoint-override: ""
 
 server:
   port: 8081
