@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: indexer
+  namespace: tx-analytics
+spec:
+  selector:
+    app: indexer
+  ports:
+    - port: 8083
+      targetPort: 8083
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indexer
+  namespace: tx-analytics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: indexer
+  template:
+    metadata:
+      labels:
+        app: indexer
+    spec:
+      containers:
+        - name: indexer
+          image: tx-analytics/indexer:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          envFrom:
+            - configMapRef:
+                name: tx-config
+            - secretRef:
+                name: tx-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Xmx320m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30
+          resources:
+            requests:
+              memory: 450Mi
+              cpu: 150m

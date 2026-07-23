@@ -1,0 +1,40 @@
+apiVersion: v1
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      - job_name: kafka
+        static_configs:
+          - targets: ["kafka-exporter:9308"]
+        metric_relabel_configs:
+          - source_labels: [consumergroup]
+            regex: "query-api-cache-.*"
+            target_label: consumergroup
+            replacement: "query-api-cache"
+
+      - job_name: tx-analytics
+        metrics_path: /actuator/prometheus
+        static_configs:
+          - targets: ["query-api:8080"]
+            labels:
+              service: query-api
+          - targets: ["producer:8081"]
+            labels:
+              service: producer
+          - targets: ["simulation:8082"]
+            labels:
+              service: simulation
+          - targets: ["indexer:8083"]
+            labels:
+              service: indexer
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: tx-analytics

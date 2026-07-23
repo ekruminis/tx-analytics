@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tx-config
+  namespace: tx-analytics
+data:
+  SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+  SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tx_analytics
+  SPRING_DATA_REDIS_HOST: redis
+  SPRING_DATA_REDIS_PORT: "6379"
+  SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tx-secrets
+  namespace: tx-analytics
+type: Opaque
+stringData:
+  POSTGRES_USER: txpipe
+  POSTGRES_PASSWORD: txpipe
+  POSTGRES_DB: tx_analytics
+  MONGO_INITDB_ROOT_USERNAME: txpipe
+  MONGO_INITDB_ROOT_PASSWORD: txpipe
+  SPRING_DATASOURCE_USERNAME: txpipe
+  SPRING_DATASOURCE_PASSWORD: txpipe
+  SPRING_DATA_MONGODB_URI: mongodb://txpipe:txpipe@mongo:27017/tx_analytics?authSource=admin
